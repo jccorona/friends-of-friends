@@ -6,6 +6,7 @@ from astropy.io import fits
 import scipy
 from time import time
 
+### Load the file with the dataset ###
 hdulist = fits.open('/Users/coronado/Documents/Gaia_DR2/actions_angles_GaiaDR2_Schoenrich_3kpc_01.fits')
 tbdata = hdulist[1]
 tbdata.data.shape
@@ -20,6 +21,7 @@ TR = tbdata.field("TR_rad")
 TP = tbdata.field("TP_rad")
 TZ = tbdata.field("TZ_rad")
 
+### Ignore stars with "crazy values for the actions (JR,Jz,Lz) and angles (TR,TZ,TP) ###
 idx_in = np.where((JR<9000*8*220)&(Jz<9000*8*220)&(Lz<9000*8*220)&(np.isfinite(TP))&(np.isfinite(TZ))&(np.isfinite(TR))&(TP<9999.99) &(TR<9999.99) &(TZ<9999.99))
 
 Jr = tbdata.field("JR_kpckms")[idx_in]
@@ -29,6 +31,7 @@ TR = tbdata.field("TR_rad")[idx_in]
 TP = tbdata.field("TP_rad")[idx_in]
 TZ = tbdata.field("TZ_rad")[idx_in]
 
+### Load file that has the pairs information (file that comes from metric--pairs) ###
 pairs = np.loadtxt('pairs_GDR2_RVS_3kpc_01_first_bin_RVS.txt')
 primary  = pairs[:,0]
 secondary = pairs[:,1]
@@ -56,6 +59,7 @@ dist_tp = (1/0.03)*diff_tp**2
 metric_J_angles = dist + (dist_tR + dist_tz + dist_tp)
 metric_J_angles = np.sqrt(metric_J_angles)/np.sqrt(6)
 
+### Choose the linking length ###
 L = 10**(-1.85) ## This gives me X groups ##
 idx = np.where((metric_J_angles <=L))[0]
 
@@ -97,21 +101,22 @@ for i in range(len(secondary_new_array)-1):
             #            #if not set(og).isdisjoint(cg):
             for s in og:
                 if cg==s:
-                    knew = k+1+i #no puede ser solo k, que es variable local
-                    if knew in aux: # para que no se repitan las primarias
+                    knew = k+1+i ## k is a local variable ##
+                    if knew in aux: # avoids repetition for the primary star #
                         continue
                     aux.append(knew)
-    id_primary[i] = aux #lista de primarias conectada con esta primaria
+    id_primary[i] = aux # list of primaries connected to this star ##
 
 
 ## Recorre los indices id_primary, busca hacia donde apunta y los junta en una lista
-def find(p, lp, idp, skip): # recibe dos parametros: primaria y una lista donde guardara datos del grupo
+## This goes through the indexes id_primary, searches them and puts them together in a list ###
+def find(p, lp, idp, skip): ## it takes two parameters: the primary and a list where it keeps the group's info ##
     for i in idp[p]:
         if not skip[i]:
             lp+= find(i,[i], idp, skip)
     return(lp)
 
-id_primary2 = Np*[[],] # primarias apuntando desde el otro lado #
+id_primary2 = Np*[[],] ## the other "primaries" pointing from the "other direction" ##
 for p in range(Np):
     for ii in id_primary[p]:
         if len(id_primary2[ii])>0:
